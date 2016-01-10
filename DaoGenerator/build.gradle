@@ -1,0 +1,101 @@
+import de.greenrobot.daogenerator.DaoGenerator;
+import de.greenrobot.daogenerator.Entity;
+import de.greenrobot.daogenerator.Schema
+import de.greenrobot.daogenerator.Property;
+import de.greenrobot.daogenerator.ToMany;
+
+def dbVersion = 1
+def daoOutputPackage = "com.example.wataru.greendao.db"
+def daoOutputDirPath = "app/src-gen/main/java"
+
+// generatorで作成したディレクトリを削除する
+task daoGeneratorClean(type: Delete) {
+    delete "../${daoOutputDirPath}"
+}
+
+task daoGenerator {
+    description 'daoを生成します'
+
+    doLast {
+        Schema schema = new Schema(dbVersion, daoOutputPackage);
+        Entity object = Generate.addObject(schema);
+        Entity hmc = Generate.addHouseMovingCondition(schema);
+        Entity pc = Generate.addPreviewConfirm(schema);
+        Entity objectImage = Generate.addObjectImage(schema);
+
+        Property pcIdForObject = object.addLongProperty("pcId").getProperty();
+        Property objectId = objectImage.addLongProperty("objectId").getProperty();
+
+//        pc.addToOne(object, pcIdForObject, "pc");
+        object.addToOne(pc, pcIdForObject);
+        ToMany pcToObject = pc.addToMany(object, pcIdForObject);
+
+        objectImage.addToOne(object, objectId);
+        ToMany objectToObjectImage = object.addToMany(objectImage, objectId);
+
+        try {
+            // 未作成ならディレクトリを作る
+            File file = new File(daoOutputDirPath);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            // Dao生成!
+            new DaoGenerator().generateAll(schema, daoOutputDirPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class Generate {
+    /**
+     * Create object's Properties
+     *
+     * @return DBUser entity
+     */
+    public static Entity addObject(Schema schema) {
+        Entity object = schema.addEntity("Object");
+        object.addIdProperty().primaryKey().autoincrement();
+        object.addStringProperty("objectName");
+        object.addStringProperty("address");
+        object.addStringProperty("layoutType");
+        object.addIntProperty("roomSize");
+        object.addIntProperty("age");
+        return object;
+    }
+
+    /**
+     * Create house_moving_condition's Properties
+     *
+     * @return DBUser entity
+     */
+    public static Entity addHouseMovingCondition(Schema schema) {
+        Entity hmc = schema.addEntity("HouseMovingCondition");
+        hmc.addIdProperty().primaryKey().autoincrement();
+        hmc.addStringProperty("hmcName");
+        hmc.addBooleanProperty("necessary");
+        return hmc;
+    }
+
+    /**
+     * Create preview_confirm's Properties
+     *
+     * @return DBUser entity
+     */
+    public static Entity addPreviewConfirm(Schema schema) {
+        Entity pc = schema.addEntity("PreviewConfirm");
+        pc.addIdProperty().primaryKey().autoincrement();
+        pc.addStringProperty("pcName");
+        return pc;
+    }
+
+    public static Entity addObjectImage(Schema schema) {
+        Entity objectImage = schema.addEntity("ObjectImage");
+        objectImage.addIdProperty().primaryKey().autoincrement();
+        objectImage.addByteArrayProperty("objectImage");
+        objectImage.addIntProperty("sequenceNo");
+        return objectImage;
+    }
+
+
+}
