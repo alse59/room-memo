@@ -2,9 +2,7 @@ package com.example.wataru.room_memo;
 
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -217,29 +215,6 @@ public class InsertFragment extends Fragment {
             }
         });
 
-        vpObjectImage.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                builder.setTitle("削除しますか");
-                builder.setPositiveButton("はい", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-//                        mAdapter
-                    }
-                });
-                builder.setNegativeButton("いいえ", null);
-                builder.show();
-                return true;
-            }
-        });
-
-//        vpObjectImage.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-//            @Override
-//            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-//                vpObjectImage.getParent().requestDisallowInterceptTouchEvent(true);
-//            }
-//        });
     }
 
     /**
@@ -272,7 +247,6 @@ public class InsertFragment extends Fragment {
             Bitmap capturedImage = (Bitmap)data.getExtras().get("data");
 
             mAdapter.add(capturedImage);
-//            vpObjectImage.replaceView(capturedImage);
             vpObjectImage.setAdapter(mAdapter);
         }
     }
