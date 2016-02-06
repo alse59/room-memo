@@ -1,4 +1,4 @@
-package com.example.wataru.room_memo;
+package com.example.wataru.fragment;
 
 
 import android.app.Activity;
@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -18,17 +19,22 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ScrollView;
-import android.widget.TextView;
 
+import com.example.wataru.common.CommonConstants;
+import com.example.wataru.component.CameraButton;
+import com.example.wataru.component.ImageViewPager;
+import com.example.wataru.component.ObjectImagePagerAdapter;
+import com.example.wataru.component.UseEditText;
+import com.example.wataru.dialog.DeleteDialog;
 import com.example.wataru.greendao.db.Object;
 import com.example.wataru.greendao.db.ObjectImage;
+import com.example.wataru.room_memo.R;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import maneger.DatabaseManager;
 import util.ImageUtils;
-import view.button.CameraButton;
 
 
 /**
@@ -38,7 +44,7 @@ import view.button.CameraButton;
  */
 public class InsertFragment extends Fragment {
     private EditText etObjectName;
-    private EditText etAddress;
+    private UseEditText etAddress;
     private EditText etLayoutType;
     private EditText etRoomSize;
     private EditText etAge;
@@ -47,9 +53,8 @@ public class InsertFragment extends Fragment {
     private Button btnInsert;
     private CameraButton btnCamera;
     private ScrollView mScrollView;
-    private static final String ARG_OBJECT_ID = "object_id";
+    private static final String TAG = "InsertFragment";
     private ObjectImagePagerAdapter mAdapter;
-    private static final int RESULT_OK = -1;
     private static final int REQUEST_CAPTURE_IMAGE = 100;
 
     // TODO: Rename and change types of parameters
@@ -68,7 +73,7 @@ public class InsertFragment extends Fragment {
     public static InsertFragment newInstance(long objectId) {
         InsertFragment fragment = new InsertFragment();
         Bundle args = new Bundle();
-        args.putLong(ARG_OBJECT_ID, objectId);
+        args.putLong(CommonConstants.BUILDING_ID, objectId);
         fragment.setArguments(args);
         return fragment;
     }
@@ -81,7 +86,7 @@ public class InsertFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mObjectId = getArguments().getLong(ARG_OBJECT_ID);
+            mObjectId = getArguments().getLong(CommonConstants.BUILDING_ID);
         }
         // TODO 0だと1件目は取得できないか
         mMode = mObjectId == 0 ? INSERT_MODE : UPDATE_MODE;
@@ -92,6 +97,7 @@ public class InsertFragment extends Fragment {
         super.onDestroy();
         mObjectId = 0;
     }
+
 
     private static final int INSERT_MODE = 0;
     private static final int UPDATE_MODE = 1;
@@ -105,18 +111,17 @@ public class InsertFragment extends Fragment {
         setupComponent(contentView);
 
         // オブジェクトを検索する
-        DatabaseManager manager = new DatabaseManager(getActivity());
-        Object object = manager.findObjectById(mObjectId);
+        DatabaseManager dbManager = DatabaseManager.getInstance(getActivity());
+        Object object = dbManager.findObjectById(mObjectId);
 
         // オブジェクトの内容をテキストに設定する
         setComponentText(object);
 
         // オブジェクトイメージを検索する
-        List<ObjectImage> objectImages = manager.findObjectImagesByObjectId(mObjectId);
+        List<ObjectImage> objectImages = dbManager.findObjectImagesByObjectId(mObjectId);
 
         // ビューページャーにイメージを設定する
         setViewPager(objectImages);
-
 
         // ボタンをセットアップする
         setupButton();
@@ -130,7 +135,7 @@ public class InsertFragment extends Fragment {
      */
     private void setupComponent(View contentView) {
         etObjectName = (EditText)contentView.findViewById(R.id.et_object_name);
-        etAddress = (EditText)contentView.findViewById(R.id.et_address);
+        etAddress = (UseEditText)contentView.findViewById(R.id.et_address);
         etLayoutType = (EditText)contentView.findViewById(R.id.et_layout_type);
         etRoomSize = (EditText)contentView.findViewById(R.id.et_room_size);
         etAge = (EditText)contentView.findViewById(R.id.et_age);
@@ -140,26 +145,38 @@ public class InsertFragment extends Fragment {
         vpObjectImage = (ImageViewPager)contentView.findViewById(R.id.viewPager);
         mScrollView = (ScrollView)contentView.findViewById(R.id.sv_insert);
 
-        etAddress.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if(event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-                    if(event.getAction() == KeyEvent.ACTION_UP) {
-                        String address = etAddress.getText().toString();
+//        etAddress.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+//            @Override
+//            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+//                if(event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+//                    if(actionId == EditorInfo.IME_ACTION_DONE || event.getAction() == KeyEvent.ACTION_UP) {
+//                        // ソフトキーボードを隠す
+//                        ((InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0);
+//                        String address = etAddress.getText().toString();
+//                        mAdapter.moveToMapCenter(address);
+//                    }
+//                    return true;
+//                }
+//                return false;
+//            }
+//        });
 
-                        commitMap(address);
-                        // ソフトキーボードを隠す
-                        ((InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0);
-                    }
+        //EditTextにリスナーをセット
+        etAddress.setOnKeyListener(new View.OnKeyListener() {
+            //コールバックとしてonKey()メソッドを定義
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                //イベントを取得するタイミングには、ボタンが押されてなおかつエンターキーだったときを指定
+                if ((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
+                    //キーボードを閉じる
+                    ((InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    String address = etAddress.getText().toString();
+                    mAdapter.moveToMapCenter(address);
                     return true;
                 }
                 return false;
             }
         });
-    }
-
-    private void commitMap(String address) {
-
     }
 
     /**
@@ -178,11 +195,10 @@ public class InsertFragment extends Fragment {
      */
     private void setViewPager(List<ObjectImage> objectImages) {
         List<Bitmap> bitmaps = ImageUtils.toArrayBitmap(objectImages);
-        mAdapter = new ObjectImagePagerAdapter(getContext(), bitmaps);
+        mAdapter = new ObjectImagePagerAdapter(getContext(), this, bitmaps);
         vpObjectImage.setAdapter(mAdapter);
 
         vpObjectImage.setOnTouchListener(new View.OnTouchListener() {
-
             int dragthreshold = 30;
             int downX;
             int downY;
@@ -218,6 +234,16 @@ public class InsertFragment extends Fragment {
 
     }
 
+    // FragmentManagerでDialogを管理するクラス
+    public void showDialogFragment(View view) {
+        FragmentManager manager = getFragmentManager();
+
+        DeleteDialog fragment = DeleteDialog.newInstance(0);
+        fragment.setTargetFragment(this, CommonConstants.FROM_DELETE_DIALOG);
+
+        fragment.show(manager, TAG);
+    }
+
     /**
      * ボタンをセットアップする
      */
@@ -233,23 +259,44 @@ public class InsertFragment extends Fragment {
         btnCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(intent, REQUEST_CAPTURE_IMAGE);
+                moveCamera();
             }
         });
     }
 
+    public void moveCamera() {
+        Intent intent = new Intent();
+        intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
+        startActivityForResult(intent, REQUEST_CAPTURE_IMAGE);
+    }
+
+    /**
+     * カメラ機能を使用した後、ビットマップをアダプターに追加する
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (REQUEST_CAPTURE_IMAGE == requestCode && resultCode == RESULT_OK) {
-            // 撮影したビットマップをイメージビューに表示する
-            Bitmap capturedImage = (Bitmap)data.getExtras().get("data");
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_CAPTURE_IMAGE :
+                    // 撮影したビットマップをイメージビューに表示する
+                    Bitmap capturedImage = (Bitmap)data.getExtras().get(CommonConstants.CAPTURE_IMAGE);
 
-            mAdapter.add(capturedImage);
-            vpObjectImage.setAdapter(mAdapter);
+                    mAdapter.add(capturedImage);
+                    break;
+                case CommonConstants.FROM_DELETE_DIALOG :
+                    long dataId = data.getExtras().getLong(CommonConstants.DATA_ID);
+                    DatabaseManager dm = new DatabaseManager(getContext());
+                    // TODO 写真を削除する
+                    dm.deleteObjectImageByKey(dataId);
+
+                    break;
+            }
         }
+
     }
 
     @Override
@@ -263,6 +310,9 @@ public class InsertFragment extends Fragment {
         vpObjectImage = null;
     }
 
+    /**
+     * メインフラグメントに遷移する
+     */
     public void moveMainFragment() {
         String objectName = etObjectName.getText().toString();
         com.example.wataru.greendao.db.Object object = new com.example.wataru.greendao.db.Object();
@@ -280,7 +330,7 @@ public class InsertFragment extends Fragment {
 //        String age = etAge.getText().toString();
 //        object.setAge(Integer.parseInt(age));
 
-        DatabaseManager dbManager = new DatabaseManager(getActivity());
+        DatabaseManager dbManager = DatabaseManager.getInstance(getActivity());
         if (mMode == INSERT_MODE) {
             mObjectId = dbManager.insertObject(object);
         } else if (mMode == UPDATE_MODE) {
@@ -307,17 +357,6 @@ public class InsertFragment extends Fragment {
             }
         }
 
-
-//        if (bytes != ImageUtils.INIT_BYTES) {
-//            ObjectImage objectImage = new ObjectImage();
-//            objectImage.setObjectImage(bytes);
-//            objectImage.setObjectId(mObjectId);
-//            if (mMode == INSERT_MODE) {
-//                dbManager.insertObjectImage(objectImage);
-//            } else if (mMode == UPDATE_MODE){
-//                dbManager.updateObjectImage(objectImage);
-//            }
-//        }
         onButtonPressed(Activity.RESULT_OK);
     }
 

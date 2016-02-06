@@ -7,7 +7,19 @@
     <string name="thumbnail">thumbnail</string>
     <string name="action_inserts">Insert</string>
     <string name="title_activity_insert">InsertActivity</string>
-
+    <string name="google_map_rgion">けやき台2-30-4</string>
+    <string name="google_app_id">aa</string>
 <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- カテゴリー -->
+    <string name="building_table">物件一覧</string>
+    <string name="pc_condition">内覧条件</string>
+
+    <!-- DeleteDialog -->
+    <string name="delete_dialog_message">削除してもよろしいですか。</string>
+    <string name="delete">削除</string>
+    <string name="yes">はい</string>
+    <string name="no">いいえ</string>
+
 </resources>

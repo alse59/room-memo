@@ -20,11 +20,13 @@ task daoGenerator {
         Schema schema = new Schema(dbVersion, daoOutputPackage);
         Entity object = Generate.addObject(schema);
         Entity hmc = Generate.addHouseMovingCondition(schema);
-        Entity pc = Generate.addPreviewConfirm(schema);
         Entity objectImage = Generate.addObjectImage(schema);
+        Entity pc = Generate.addPreviewConfirm(schema);
+        Entity pcd = Generate.addPreviewConfirmDetail(schema);
 
         Property pcIdForObject = object.addLongProperty("pcId").getProperty();
         Property objectId = objectImage.addLongProperty("objectId").getProperty();
+        Property pcIdForPcd = pcd.addLongProperty("pcId").getProperty();
 
 //        pc.addToOne(object, pcIdForObject, "pc");
         object.addToOne(pc, pcIdForObject);
@@ -32,6 +34,9 @@ task daoGenerator {
 
         objectImage.addToOne(object, objectId);
         ToMany objectToObjectImage = object.addToMany(objectImage, objectId);
+
+        pcd.addToOne(pc, pcIdForPcd);
+        ToMany pcToPcd = pc.addToMany(pcd, pcIdForPcd);
 
         try {
             // 未作成ならディレクトリを作る
@@ -77,6 +82,16 @@ class Generate {
         return hmc;
     }
 
+
+
+    public static Entity addObjectImage(Schema schema) {
+        Entity objectImage = schema.addEntity("ObjectImage");
+        objectImage.addIdProperty().primaryKey().autoincrement();
+        objectImage.addByteArrayProperty("objectImage");
+        objectImage.addIntProperty("sequenceNo");
+        return objectImage;
+    }
+
     /**
      * Create preview_confirm's Properties
      *
@@ -89,12 +104,11 @@ class Generate {
         return pc;
     }
 
-    public static Entity addObjectImage(Schema schema) {
-        Entity objectImage = schema.addEntity("ObjectImage");
-        objectImage.addIdProperty().primaryKey().autoincrement();
-        objectImage.addByteArrayProperty("objectImage");
-        objectImage.addIntProperty("sequenceNo");
-        return objectImage;
+    public static Entity addPreviewConfirmDetail(Schema schema) {
+        Entity pcd = schema.addEntity("PreviewConfirmDetail");
+        pcd.addIdProperty().primaryKey().autoincrement();
+        pcd.addStringProperty("pcDetailName");
+        return pcd;
     }
 
 

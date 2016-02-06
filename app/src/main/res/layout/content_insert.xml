@@ -20,7 +20,7 @@
     <!--android:layout_height="300dp"-->
     <!--android:id="@+id/viewPager"/>-->
 
-    <com.example.wataru.room_memo.ImageViewPager
+    <com.example.wataru.component.ImageViewPager
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/viewPager" />
@@ -51,9 +51,10 @@
             android:layout_height="wrap_content"
             android:text="住所" />
 
-        <EditText
+        <com.example.wataru.component.UseEditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:inputType="text"
             android:id="@+id/et_address"
             android:layout_weight="1" />
     </LinearLayout>
@@ -111,7 +112,7 @@
         android:id="@+id/iv_object_image"
         android:layout_gravity="center_horizontal" />
 
-    <view.button.CameraButton
+    <com.example.wataru.component.CameraButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/standard_button"

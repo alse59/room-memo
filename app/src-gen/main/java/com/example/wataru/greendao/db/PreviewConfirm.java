@@ -20,6 +20,7 @@ public class PreviewConfirm {
     private transient PreviewConfirmDao myDao;
 
     private List<Object> objectList;
+    private List<PreviewConfirmDetail> previewConfirmDetailList;
 
     public PreviewConfirm() {
     }
@@ -77,6 +78,28 @@ public class PreviewConfirm {
         objectList = null;
     }
 
+    /** To-many relationship, resolved on first access (and after reset). Changes to to-many relations are not persisted, make changes to the target entity. */
+    public List<PreviewConfirmDetail> getPreviewConfirmDetailList() {
+        if (previewConfirmDetailList == null) {
+            if (daoSession == null) {
+                throw new DaoException("Entity is detached from DAO context");
+            }
+            PreviewConfirmDetailDao targetDao = daoSession.getPreviewConfirmDetailDao();
+            List<PreviewConfirmDetail> previewConfirmDetailListNew = targetDao._queryPreviewConfirm_PreviewConfirmDetailList(id);
+            synchronized (this) {
+                if(previewConfirmDetailList == null) {
+                    previewConfirmDetailList = previewConfirmDetailListNew;
+                }
+            }
+        }
+        return previewConfirmDetailList;
+    }
+
+    /** Resets a to-many relationship, making the next get call to query for a fresh result. */
+    public synchronized void resetPreviewConfirmDetailList() {
+        previewConfirmDetailList = null;
+    }
+
     /** Convenient call for {@link AbstractDao#delete(Object)}. Entity must attached to an entity context. */
     public void delete() {
         if (myDao == null) {
@@ -101,4 +124,8 @@ public class PreviewConfirm {
         myDao.refresh(this);
     }
 
+    @Override
+    public String toString() {
+        return pcName;
+    }
 }

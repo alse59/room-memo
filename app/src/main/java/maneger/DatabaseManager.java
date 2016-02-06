@@ -1,6 +1,7 @@
 package maneger;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.example.wataru.greendao.db.DaoMaster;
@@ -9,6 +10,10 @@ import com.example.wataru.greendao.db.Object;
 import com.example.wataru.greendao.db.ObjectDao;
 import com.example.wataru.greendao.db.ObjectImage;
 import com.example.wataru.greendao.db.ObjectImageDao;
+import com.example.wataru.greendao.db.PreviewConfirm;
+import com.example.wataru.greendao.db.PreviewConfirmDao;
+import com.example.wataru.greendao.db.PreviewConfirmDetail;
+import com.example.wataru.greendao.db.PreviewConfirmDetailDao;
 
 import java.util.List;
 
@@ -16,18 +21,24 @@ import java.util.List;
  * Created by wataru on 2015/11/15.
  */
 public class DatabaseManager {
-    private static final String TAG = DatabaseManager.class.getCanonicalName();
+    private static final String TAG = "DatabaseManager";
     private static final String DBNAME = "sample-database";
     private SQLiteDatabase database;
     private DaoMaster daoMaster;
     private DaoSession daoSession;
     private static DatabaseManager instance;
-    private Context context;
     private DaoMaster.DevOpenHelper mHelper;
 
     public DatabaseManager(Context context) {
-        this.context = context;
         mHelper = new DaoMaster.DevOpenHelper(context, DBNAME, null);
+        createTables();
+    }
+
+    public void createTables() {
+        openWritableDb();
+        PreviewConfirmDetailDao dao = daoSession.getPreviewConfirmDetailDao();
+        dao.createTable(database, true);
+        daoSession.clear();
     }
 
     public static DatabaseManager getInstance(Context context) {
@@ -147,7 +158,6 @@ public class DatabaseManager {
         }
     }
 
-
     public List<Object> listObjects() {
         List<Object> objects = null;
         try {
@@ -160,6 +170,34 @@ public class DatabaseManager {
             e.printStackTrace();
         }
         return objects;
+    }
+
+    public List<PreviewConfirm> listPreviewConfirms() {
+        List<PreviewConfirm> previewConfirms = null;
+        try {
+            openReadableDb();
+            PreviewConfirmDao previewConfirmsDao = daoSession.getPreviewConfirmDao();
+            previewConfirms = previewConfirmsDao.loadAll();
+
+            daoSession.clear();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return previewConfirms;
+    }
+
+    public List<PreviewConfirmDetail> listPreviewConfirmDetails() {
+        List<PreviewConfirmDetail> previewConfirmDetails = null;
+        try {
+            openReadableDb();
+            PreviewConfirmDetailDao previewConfirmDetailsDao = daoSession.getPreviewConfirmDetailDao();
+            previewConfirmDetails = previewConfirmDetailsDao.loadAll();
+
+            daoSession.clear();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return previewConfirmDetails;
     }
 
     public Object findObjectById(long id) {
@@ -187,6 +225,46 @@ public class DatabaseManager {
         return objectImages;
     }
 
+    public PreviewConfirm findPreviewConfirmById(long id) {
+        PreviewConfirm previewConfirm = null;
+        try {
+            openReadableDb();
+            PreviewConfirmDao previewConfirmDao = daoSession.getPreviewConfirmDao();
+            previewConfirm = previewConfirmDao.load(id);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return previewConfirm;
+    }
+
+    public List<PreviewConfirmDetail> findPreviewConfirmDetailById(long id) {
+        List<PreviewConfirmDetail> previewConfirmDetails = null;
+        try {
+            openReadableDb();
+            PreviewConfirmDetailDao previewConfirmDetailDao = daoSession.getPreviewConfirmDetailDao();
+            previewConfirmDetails = previewConfirmDetailDao._queryPreviewConfirm_PreviewConfirmDetailList(id);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return previewConfirmDetails;
+    }
+
+    public Cursor findPreviewConfirmDetailsById(long id) {
+        Cursor cursor = null;
+        try {
+            openReadableDb();
+            PreviewConfirmDetailDao dao = daoSession.getPreviewConfirmDetailDao();
+            String textColumn = PreviewConfirmDetailDao.Properties.Id.columnName;
+            String selection = PreviewConfirmDetailDao.Properties.PcId.columnName + " = ?";
+            String[] selectionArgs = {String.valueOf(id)};
+            String orderBy = textColumn + " COLLATE LOCALIZED ASC";
+            cursor = database.query(dao.getTablename(), dao.getAllColumns(), selection, selectionArgs, null, null, orderBy);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return cursor;
+    }
+
     public void deleteObjectByKey(long key) {
         try {
             openWritableDb();
@@ -197,11 +275,58 @@ public class DatabaseManager {
         }
     }
 
-    public void deleteObjectImageByKey(List<Long> keys) {
+    public void deleteObjectImageByKeys(List<Long> keys) {
         try {
             openWritableDb();
             ObjectImageDao objectImageDao = daoSession.getObjectImageDao();
             objectImageDao.deleteByKeyInTx(keys);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteObjectImageByKey(Long key) {
+        try {
+            openWritableDb();
+            ObjectImageDao objectImageDao = daoSession.getObjectImageDao();
+            objectImageDao.deleteByKey(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deletePreviewConfirmDetail(long keys) {
+        try {
+            openWritableDb();
+            PreviewConfirmDetailDao previewConfirmDetailDao = daoSession.getPreviewConfirmDetailDao();
+            previewConfirmDetailDao.deleteByKey(keys);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void insertPreviewConfirm(PreviewConfirm previewConfirm) {
+        try {
+            if (previewConfirm != null) {
+                openWritableDb();
+                PreviewConfirmDao dao = daoSession.getPreviewConfirmDao();
+                dao.insert(previewConfirm);
+                daoSession.clear();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void insertPreviewConfirmDetail(PreviewConfirmDetail previewConfirmDetail) {
+        try {
+            if (previewConfirmDetail != null) {
+                openWritableDb();
+                PreviewConfirmDetailDao dao = daoSession.getPreviewConfirmDetailDao();
+                dao.insert(previewConfirmDetail);
+                daoSession.clear();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

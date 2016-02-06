@@ -5,27 +5,28 @@ import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+
+import com.example.wataru.common.CommonConstants;
+import com.example.wataru.fragment.CardListFragment;
+import com.example.wataru.fragment.PreviewConfirmFragment;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, CardListFragment.OnFragmentInteractionListener {
-    private static final String TAG = "MainActivity";
-    private FragmentManager manager;
+    public static final String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle(getString(R.string.building_table));
         setSupportActionBar(toolbar);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -38,28 +39,24 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         Fragment fragment = getFragment();
-
-        FragmentTransaction ft = manager.beginTransaction();
-        ft.replace(R.id.container, fragment, TAG).commit();
-        ActionBar bar = getSupportActionBar();
-        bar.addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
-            @Override
-            public void onMenuVisibilityChanged(boolean isVisible) {
-
-            }
-        });
+        replaceFragment(fragment);
     }
 
-    @Override
-    public void onFragmentInteraction(Bundle bundle) {
-        moveInsertActivity(bundle);
+
+    /**
+     * 指定したフラグメントに入れ替える
+     * @param fragment
+     */
+    private void replaceFragment(Fragment fragment) {
+        FragmentManager manager = getSupportFragmentManager();
+        manager.beginTransaction().replace(R.id.container, fragment, TAG).commit();
     }
 
     public Fragment getFragment() {
-        manager = getSupportFragmentManager();
+        FragmentManager manager = getSupportFragmentManager();
         Fragment fragment = manager.findFragmentByTag(TAG);
         if (fragment == null) {
-            fragment = new CardListFragment();
+            fragment = CardListFragment.newInstance();
         }
         return fragment;
     }
@@ -74,15 +71,25 @@ public class MainActivity extends AppCompatActivity
         }
     }
 public static final int MENU_INSERT_ACTIVITY = 0;
+
+    /**
+     * オプションメニューを生成する
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
-        menu.add(0, MENU_INSERT_ACTIVITY, 0, "")
+
+        menu.add(0, MENU_INSERT_ACTIVITY, 0, TAG)
                 .setIcon(android.R.drawable.ic_menu_add).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         return true;
     }
 
+    /**
+     * 選択したオプションアイテムを検出する
+     * @param item
+     * @return
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -93,17 +100,27 @@ public static final int MENU_INSERT_ACTIVITY = 0;
         if (id == R.id.action_settings) {
             return true;
         } else if (id == MENU_INSERT_ACTIVITY) {
-            moveInsertActivity(new Bundle());
+            FragmentManager manager = getSupportFragmentManager();
+            Fragment fragment = manager.findFragmentByTag(TAG);
+            if (fragment instanceof CardListFragment) {
+                moveInsertActivity(new Bundle());
+            } else if (fragment instanceof PreviewConfirmFragment) {
+                ((PreviewConfirmFragment)fragment).showPCRegistDialog();
+            }
+
         }
 
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * インサートアクティビティに画面遷移する
+     * @param bundle
+     */
     public void moveInsertActivity(Bundle bundle) {
         Intent i = new Intent(this, InsertActivity.class);
         i.putExtras(bundle);
-        final int requestCode = 123;
-        startActivityForResult(i, requestCode);
+        startActivityForResult(i, CommonConstants.MAIN_TO_INSERT_CODE);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -111,22 +128,24 @@ public static final int MENU_INSERT_ACTIVITY = 0;
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        FragmentTransaction ft = manager.beginTransaction();
         Fragment fragment = null;
-        if (id == R.id.nav_camara) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-            fragment = new CardListFragment();
+        String title = null;
+        if (id == R.id.building_table) {
+            fragment = CardListFragment.newInstance();
+            title = getString(R.string.building_table);
+        } else if (id == R.id.pc_condition) {
+            fragment = new PreviewConfirmFragment();
+            title = getString(R.string.pc_condition);
         } else if (id == R.id.nav_slideshow) {
-            fragment = new BlankFragment2();
         } else if (id == R.id.nav_manage) {
-
+            fragment = CardListFragment.newInstance();
         } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
 
         }
-        ft.replace(R.id.container, fragment, TAG).commit();
+        getSupportActionBar().setTitle(title);
+        replaceFragment(fragment);
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -137,18 +156,21 @@ public static final int MENU_INSERT_ACTIVITY = 0;
         super.onActivityResult(requestCode, resultCode, data);
         Bundle bundle = data.getExtras();
         switch (requestCode) {
-            case 123:
+            case CommonConstants.MAIN_TO_INSERT_CODE:
                 if (resultCode == RESULT_OK) {
                     // TODO 抽象的なクラスを使用していない
                     CardListFragment fragment = (CardListFragment)getFragment();
                     fragment.refleshCardList();
-                } else if (resultCode == RESULT_CANCELED) {
-                    Toast.makeText(this, "うまくいかなかった！", Toast.LENGTH_SHORT).show();
                 }
                 break;
 
             default:
                 break;
         }
+    }
+
+    @Override
+    public void onFragmentInteraction(Bundle bundle) {
+        moveInsertActivity(bundle);
     }
 }

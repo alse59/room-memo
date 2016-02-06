@@ -1,21 +1,19 @@
-package com.example.wataru.room_memo;
+package com.example.wataru.component;
 
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.EditText;
 import android.widget.ImageView;
+
+import com.example.wataru.fragment.InsertFragment;
+import com.example.wataru.room_memo.R;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -23,13 +21,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import util.ImageUtils;
-
 /**
  * Created by wataru on 2015/12/27.
  */
 public class ObjectImagePagerAdapter extends PagerAdapter {
+    private static final String TAG = "ObjectImagePagerAdapter";
     private Context mContext;
+    private InsertFragment mFragment;
     private List<Bitmap> mBitmaps;
     private boolean hasResource;
 
@@ -37,16 +35,21 @@ public class ObjectImagePagerAdapter extends PagerAdapter {
 
     private boolean mNotifyOnChange = true;
 
-    public ObjectImagePagerAdapter(Context context, List<Bitmap> bitmaps) {
+//    public ObjectImagePagerAdapter(Context context, List<Bitmap> bitmaps) {
+//        mContext = context;
+//        mBitmaps = bitmaps;
+//        if (mBitmaps.size() > 0) {
+//            hasResource = true;
+//        }
+//    }
+
+    public ObjectImagePagerAdapter(Context context, InsertFragment fragment, List<Bitmap> bitmaps) {
         mContext = context;
+        mFragment = fragment;
         mBitmaps = bitmaps;
         if (mBitmaps.size() > 0) {
             hasResource = true;
         }
-    }
-
-    private Bitmap getBitmapNoData() {
-        return BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.no_data);
     }
 
     public List<Bitmap> getBitmaps() {
@@ -107,7 +110,7 @@ public class ObjectImagePagerAdapter extends PagerAdapter {
      *
      * @param address 住所。ジオコーディングによって検索されます。
      */
-    private void moveToMapCenter( String address ) {
+    public void moveToMapCenter( String address ) {
         final String region = mContext.getString(R.string.google_map_rgion);
         final String script = "javascript:window.webViewCallbackSearchAddress('%s','%s');";
         this.mWebView.loadUrl(String.format(script, address, region));
@@ -122,13 +125,9 @@ public class ObjectImagePagerAdapter extends PagerAdapter {
     @SuppressLint( "SetJavaScriptEnabled" )
     private View initWebView() {
         mWebView = new ChildPagerMapView(mContext);
-//        mWebView.requestDisallowInterceptTouchEvent(true);
         mWebView.setOnTouchListener(new WebView.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-//                ((WebView)v).canScrollVertically()
-                ((WebView)v).requestDisallowInterceptTouchEvent(true);
-                v.getParent().requestDisallowInterceptTouchEvent(false);
                 return false;
             }
         });
@@ -154,31 +153,18 @@ public class ObjectImagePagerAdapter extends PagerAdapter {
             v = initWebView();
         } else {
             ImageView iv = new ImageView(mContext);
-            iv.setImageBitmap(mBitmaps.get(position-1));
+            iv.setImageBitmap(mBitmaps.get(position - 1));
             iv.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
                     mImageView = (ImageView)v;
-                    AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-                    builder.setTitle("削除しますか");
-                    builder.setPositiveButton("はい", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            Bitmap bmp = ImageUtils.toBitmap(mImageView);
-                            remove(bmp);
-                            notifyDataSetChanged();
-                        }
-                    });
-                    builder.setNegativeButton("いいえ", null);
-                    builder.show();
+
                     return true;
-//                    iv.setImageResource(R.mipmap.no_data);
                 }
             });
             v = iv;
         }
         ((ViewPager)container).addView(v, 0);
-
         return v;
     }
 
@@ -248,7 +234,7 @@ public class ObjectImagePagerAdapter extends PagerAdapter {
         if (mBitmaps.size() == 0) {
             return 1;
         }
-        return mBitmaps.size();
+        return mBitmaps.size() + 1;
     }
 
     @Override
